@@ -54,7 +54,6 @@ const init = () => {
 	//cursor and raycaster
 	const mouse = new THREE.Vector2();
 	const raycaster = new THREE.Raycaster();
-    raycaster.setFromCamera(mouse, camera);
 	
 	const onPointerMove = (event) => {
 		mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
@@ -62,6 +61,7 @@ const init = () => {
 	}
 	
 	const onPointerUp = (event) => {
+		raycaster.setFromCamera(mouse, camera);
 		const intersects = raycaster.intersectObject(model);
 		if (intersects.length > 0) {
 			const coordinate = intersects[0].point;
@@ -72,7 +72,7 @@ const init = () => {
 			const gizmoGeometry = new THREE.SphereGeometry(1, 32, 8);
 			let gizmoSphere = new THREE.Mesh(gizmoGeometry, gizmoMaterial);
 			gizmoSphere.scale.set(0.01, 0.01, 0.01);
-			gizmoSphere.position.set(coordinate.x, coordinate.y+0.5, coordinate.z);
+			gizmoSphere.position.set(coordinate.x, coordinate.y, coordinate.z);
 			scene.add(gizmoSphere);
 		}
 	}
@@ -89,7 +89,7 @@ const init = () => {
 	}
 	renderer.setAnimationLoop(renderframe);
 	window.addEventListener('pointermove', onPointerMove);
-	window.addEventListener('pointerup', onPointerUp);
+	window.addEventListener('click', onPointerUp);
 	window.addEventListener('resize', onWindowResize);
 }
 
