@@ -2,11 +2,13 @@ import * as THREE from "three";
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 
 let buildMode = false;
+let points = [];
 document.getElementById("buildmode").addEventListener('click', (event) => {
 	if (!buildMode){
 		buildMode = true;
 		document.getElementById("viewport").style.cursor = "crosshair";
 		document.getElementById("buildmode").style.backgroundColor = "#FFAA00";
+		points = [];
 	} else {
 		buildMode = false;
 		document.getElementById("viewport").style.cursor  = "grab";
@@ -35,10 +37,10 @@ const init = () => {
 	controls.target.set(0, 0, 0);
 	controls.rotateSpeed *= -0.4;
 	controls.autoRotate = false;
-	controls.enableDamping = false;
-	controls.enableZoom = false;
-	controls.maxPolarAngle = Math.PI-2;
-	controls.minPolarAngle = Math.PI-3;
+	controls.enableDamping = true;
+	controls.enableZoom = true;
+	controls.maxPolarAngle = Math.PI-1.7;
+	controls.minPolarAngle = 0;
 	controls.update();
 	
 	//scene
@@ -68,6 +70,11 @@ const init = () => {
 	const mouse = new THREE.Vector2();
 	const raycaster = new THREE.Raycaster();
 	
+	const lineMaterial = new THREE.LineBasicMaterial({ color: 0xFFAA00});
+	const lineGeometry = new THREE.BufferGeometry().setFromPoints(points);
+	const line = new THREE.Line(lineGeometry, lineMaterial);
+	scene.add(line);
+	
 	const onPointerMove = (event) => {
 		mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
 		mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
@@ -82,12 +89,20 @@ const init = () => {
 				
 				console.log("position on plane:", coordinate);
 				
+				//sphere gizmos
 				let gizmoMaterial = new THREE.MeshBasicMaterial({color: 0xFFAA00});
 				const gizmoGeometry = new THREE.SphereGeometry(1, 32, 8);
 				let gizmoSphere = new THREE.Mesh(gizmoGeometry, gizmoMaterial);
-				gizmoSphere.scale.set(0.01, 0.01, 0.01);
+				gizmoSphere.scale.set(0.005, 0.005, 0.005);
 				gizmoSphere.position.set(coordinate.x, coordinate.y, coordinate.z);
 				scene.add(gizmoSphere);
+				
+				//line gizmos
+				points.push(new THREE.Vector3(coordinate.x, coordinate.y+0.001, coordinate.z));
+				let baseGeometry = JSON.parse(JSON.stringify(points));
+				baseGeometry.push(new THREE.Vector3(points[0].x, points[0].y, points[0].z));
+				const newGeometry = new THREE.BufferGeometry().setFromPoints(baseGeometry);
+				line.geometry = newGeometry;
 			}
 		}
 	}
