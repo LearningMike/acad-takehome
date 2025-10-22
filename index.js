@@ -1,6 +1,19 @@
 import * as THREE from "three";
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 
+let buildMode = false;
+document.getElementById("buildmode").addEventListener('click', (event) => {
+	if (!buildMode){
+		buildMode = true;
+		document.getElementById("viewport").style.cursor = "crosshair";
+		document.getElementById("buildmode").style.backgroundColor = "#FFAA00";
+	} else {
+		buildMode = false;
+		document.getElementById("viewport").style.cursor  = "grab";
+		document.getElementById("buildmode").style.backgroundColor = "#FFFFFF";
+	}
+});
+
 const init = () => {
 	
 	//viewport
@@ -61,19 +74,21 @@ const init = () => {
 	}
 	
 	const onPointerUp = (event) => {
-		raycaster.setFromCamera(mouse, camera);
-		const intersects = raycaster.intersectObject(model);
-		if (intersects.length > 0) {
-			const coordinate = intersects[0].point;
-			
-			console.log("position on plane:", coordinate);
-			
-			let gizmoMaterial = new THREE.MeshBasicMaterial({color: 0xFFAA00});
-			const gizmoGeometry = new THREE.SphereGeometry(1, 32, 8);
-			let gizmoSphere = new THREE.Mesh(gizmoGeometry, gizmoMaterial);
-			gizmoSphere.scale.set(0.01, 0.01, 0.01);
-			gizmoSphere.position.set(coordinate.x, coordinate.y, coordinate.z);
-			scene.add(gizmoSphere);
+		if (buildMode) {
+			raycaster.setFromCamera(mouse, camera);
+			const intersects = raycaster.intersectObject(model);
+			if (intersects.length > 0) {
+				const coordinate = intersects[0].point;
+				
+				console.log("position on plane:", coordinate);
+				
+				let gizmoMaterial = new THREE.MeshBasicMaterial({color: 0xFFAA00});
+				const gizmoGeometry = new THREE.SphereGeometry(1, 32, 8);
+				let gizmoSphere = new THREE.Mesh(gizmoGeometry, gizmoMaterial);
+				gizmoSphere.scale.set(0.01, 0.01, 0.01);
+				gizmoSphere.position.set(coordinate.x, coordinate.y, coordinate.z);
+				scene.add(gizmoSphere);
+			}
 		}
 	}
 	
