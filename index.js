@@ -1,21 +1,6 @@
 import * as THREE from "three";
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 
-let buildMode = false;
-let points = [];
-document.getElementById("buildmode").addEventListener('click', (event) => {
-	if (!buildMode){
-		buildMode = true;
-		document.getElementById("viewport").style.cursor = "crosshair";
-		document.getElementById("buildmode").style.backgroundColor = "#FFAA00";
-		points = [];
-	} else {
-		buildMode = false;
-		document.getElementById("viewport").style.cursor  = "grab";
-		document.getElementById("buildmode").style.backgroundColor = "#FFFFFF";
-	}
-});
-
 const init = () => {
 	
 	//viewport
@@ -39,6 +24,8 @@ const init = () => {
 	controls.autoRotate = false;
 	controls.enableDamping = true;
 	controls.enableZoom = true;
+	controls.maxDistance = 2;
+	controls.minDistance = 0.5;
 	controls.maxPolarAngle = Math.PI-1.7;
 	controls.minPolarAngle = 0;
 	controls.update();
@@ -47,6 +34,28 @@ const init = () => {
 	const scene = new THREE.Scene();
 	scene.background = new THREE.Color(0xAAAAAA);
 	scene.add(camera);
+	
+	let buildMode = false;
+	let points = [];
+	let gizmos = new THREE.Object3D();
+	
+	document.getElementById("buildmode").addEventListener('click', (event) => {
+		if (!buildMode){
+			buildMode = true;
+			document.getElementById("viewport").style.cursor = "crosshair";
+			document.getElementById("buildmode").style.backgroundColor = "#FFAA0099";
+			//clear old points and gizmos
+			points = [];
+			line.geometry = new THREE.BufferGeometry().setFromPoints(points);
+			gizmos.clear();
+		} else {
+			buildMode = false;
+			document.getElementById("viewport").style.cursor  = "grab";
+			document.getElementById("buildmode").style.backgroundColor = "#FFFFFFFF";
+			//get height and build geometry
+		}
+	});
+	scene.add(gizmos);
 	
 	//image and plane
 	const request = "https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/-122.477098046626,37.81059898565757,19/1024x1024?access_token=pk.eyJ1Ijoibmlja2ZpdHoiLCJhIjoiY2p3d2g3N2F5MDZ4azQwcG12dWticDB0diJ9.qnQV5QgYN_eDwg4uUdbO6Q";
@@ -87,22 +96,19 @@ const init = () => {
 			if (intersects.length > 0) {
 				const coordinate = intersects[0].point;
 				
-				console.log("position on plane:", coordinate);
-				
 				//sphere gizmos
 				let gizmoMaterial = new THREE.MeshBasicMaterial({color: 0xFFAA00});
 				const gizmoGeometry = new THREE.SphereGeometry(1, 32, 8);
 				let gizmoSphere = new THREE.Mesh(gizmoGeometry, gizmoMaterial);
 				gizmoSphere.scale.set(0.005, 0.005, 0.005);
 				gizmoSphere.position.set(coordinate.x, coordinate.y, coordinate.z);
-				scene.add(gizmoSphere);
+				gizmos.add(gizmoSphere);
 				
 				//line gizmos
 				points.push(new THREE.Vector3(coordinate.x, coordinate.y+0.001, coordinate.z));
 				let baseGeometry = JSON.parse(JSON.stringify(points));
 				baseGeometry.push(new THREE.Vector3(points[0].x, points[0].y, points[0].z));
-				const newGeometry = new THREE.BufferGeometry().setFromPoints(baseGeometry);
-				line.geometry = newGeometry;
+				line.geometry = new THREE.BufferGeometry().setFromPoints(baseGeometry);
 			}
 		}
 	}
