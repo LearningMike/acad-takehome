@@ -32,12 +32,21 @@ const init = () => {
 	
 	//scene
 	const scene = new THREE.Scene();
-	scene.background = new THREE.Color(0xAAAAAA);
+	scene.background = new THREE.Color(0xEEEEEE);
 	scene.add(camera);
+	
+	const backlight = new THREE.HemisphereLight(0xB1E1FF, 0xAA7700, 1);
+	scene.add(backlight);
+	const light = new THREE.DirectionalLight(0xFFFFFF, 1.4);
+	light.position.set(2, 10, 2);
+	light.target.position.set(0, 0, 0);
+	scene.add(light);
+	scene.add(light.target);
 	
 	let buildMode = false;
 	let points = [];
 	let gizmos = new THREE.Object3D();
+	let height = 0.2;
 	
 	document.getElementById("buildmode").addEventListener('click', (event) => {
 		if (!buildMode){
@@ -53,6 +62,45 @@ const init = () => {
 			document.getElementById("viewport").style.cursor  = "grab";
 			document.getElementById("buildmode").style.backgroundColor = "#FFFFFFFF";
 			//get height and build geometry
+			let constructedGeometry = [];
+			let constructedIndices = [];
+			for(let i=0; i<points.length; i++){
+				let wallplane = [];
+				//building a wall for each point
+				if (i < points.length-1){
+					wallplane = [
+						points[i].x, points[i].y, points[i].z,
+						points[i+1].x, points[i+1].y, points[i+1].z,
+						points[i+1].x, points[i+1].y+height, points[i+1].z,
+						points[i].x, points[i].y+height, points[i].z,
+					]
+				} else if (i == points.length-1){
+					wallplane = [
+						points[i].x, points[i].y, points[i].z,
+						points[0].x, points[0].y, points[0].z,
+						points[0].x, points[0].y+height, points[0].z,
+						points[i].x, points[i].y+height, points[i].z,
+					]
+				}
+				let indices = [
+					(i*4), (i*4)+1, (i*4)+2,
+					(i*4)+2, (i*4)+3, (i*4),
+				];
+				constructedGeometry = constructedGeometry.concat(wallplane);
+				constructedIndices = constructedIndices.concat(indices);
+			}
+			
+			const bufferGeometry = new THREE.BufferGeometry();
+			const bufferVertices = new Float32Array(constructedGeometry);
+			
+			console.log(constructedGeometry);
+			console.log(constructedIndices);
+			bufferGeometry.setIndex(constructedIndices);
+			bufferGeometry.setAttribute('position', new THREE.BufferAttribute(bufferVertices, 3));
+
+			const bufferMaterial = new THREE.MeshLambertMaterial({color: 0xEEEEEE, flatShading: true, side:THREE.DoubleSide});
+			const model = new THREE.Mesh(bufferGeometry, bufferMaterial);
+			scene.add(model);
 		}
 	});
 	scene.add(gizmos);
@@ -60,7 +108,7 @@ const init = () => {
 	//image and plane
 	const request = "https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/-122.477098046626,37.81059898565757,19/1024x1024?access_token=pk.eyJ1Ijoibmlja2ZpdHoiLCJhIjoiY2p3d2g3N2F5MDZ4azQwcG12dWticDB0diJ9.qnQV5QgYN_eDwg4uUdbO6Q";
 	
-	let model;
+	let plane;
 	fetch(request).then(response => response.blob()).then(imageBlob => {
 		console.log("image retrieved");
 		const imageURL = URL.createObjectURL(imageBlob);
@@ -71,8 +119,8 @@ const init = () => {
 		const planeGeometry = new THREE.PlaneGeometry(1, 1);
 		planeGeometry.rotateX(Math.PI/2);
 		const planeMaterial = new THREE.MeshBasicMaterial({color: 0xFFFFFF, side: THREE.DoubleSide, map: texture});
-		model = new THREE.Mesh(planeGeometry, planeMaterial);
-		scene.add(model);
+		plane = new THREE.Mesh(planeGeometry, planeMaterial);
+		scene.add(plane);
 	});
 	
 	//cursor and raycaster
@@ -92,7 +140,7 @@ const init = () => {
 	const onPointerUp = (event) => {
 		if (buildMode) {
 			raycaster.setFromCamera(mouse, camera);
-			const intersects = raycaster.intersectObject(model);
+			const intersects = raycaster.intersectObject(plane);
 			if (intersects.length > 0) {
 				const coordinate = intersects[0].point;
 				
