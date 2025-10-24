@@ -32,30 +32,100 @@ const init = () => {
 	
 	//scene
 	const scene = new THREE.Scene();
-	scene.background = new THREE.Color(0xEEEEEE);
+	scene.background = new THREE.Color(0xCCCCCC);
 	scene.add(camera);
 	
 	const backlight = new THREE.HemisphereLight(0xB1E1FF, 0xAA7700, 1);
 	scene.add(backlight);
-	const light = new THREE.DirectionalLight(0xFFFFFF, 1.4);
+	const light = new THREE.DirectionalLight(0xFFFFFF, 2);
 	light.position.set(2, 10, 2);
 	light.target.position.set(0, 0, 0);
 	scene.add(light);
 	scene.add(light.target);
 	
 	let buildMode = false;
+	let heightSet = false;
 	let points = [];
 	let gizmos = new THREE.Object3D();
 	let height = 1;
+	let models = new THREE.Object3D();
 	let model = new THREE.Object3D();
-	let userInputHeight = 0.2;
 	let texture;
+	let userInputHeight = document.getElementById("heightinput").value;
+	
+	const createModel = () => {
+		let constructedGeometry = [];
+		let constructedIndices = [];
+		let roofIndices = [];
+		let constructedUVs = [];
+		
+		//building a wall for each point
+		for(let i=0; i<points.length; i++){
+			let wallplane = [];
+			let uv = [];
+			if (i < points.length-1){
+				wallplane = [
+					points[i].x, points[i].y, points[i].z,
+					points[i+1].x, points[i+1].y, points[i+1].z,
+					points[i+1].x, points[i+1].y+height, points[i+1].z,
+					points[i].x, points[i].y+height, points[i].z,
+				]
+				uv = [
+					points[i].x+0.5, Math.abs(points[i].z-0.5),
+					points[i+1].x+0.5, Math.abs(points[i+1].z-0.5),
+					points[i+1].x+0.5, Math.abs(points[i+1].z-0.5),
+					points[i].x+0.5, Math.abs(points[i].z-0.5),
+				]
+			} else if (i == points.length-1){
+				wallplane = [
+					points[i].x, points[i].y, points[i].z,
+					points[0].x, points[0].y, points[0].z,
+					points[0].x, points[0].y+height, points[0].z,
+					points[i].x, points[i].y+height, points[i].z,
+				]
+				uv = [
+					points[i].x+0.5, Math.abs(points[i].z-0.5),
+					points[0].x+0.5, Math.abs(points[0].z-0.5),
+					points[0].x+0.5, Math.abs(points[0].z-0.5),
+					points[i].x+0.5, Math.abs(points[i].z-0.5),
+				]
+			}
+			let indices = [
+				(i*4), (i*4)+1, (i*4)+2,
+				(i*4)+2, (i*4)+3, (i*4),
+			];
+			constructedGeometry = constructedGeometry.concat(wallplane);
+			constructedIndices = constructedIndices.concat(indices);
+			roofIndices = roofIndices.concat([(i*4)+3]);
+			constructedUVs = constructedUVs.concat(uv);
+		}
+		
+		//roofing with indices (brute covering for now) does not work for concave polygons
+		for(let i=2; i<roofIndices.length; i++){
+			constructedIndices = constructedIndices.concat([roofIndices[0], roofIndices[i-1], roofIndices[i]]);
+		}
+		
+		const bufferGeometry = new THREE.BufferGeometry();
+		const bufferVertices = new Float32Array(constructedGeometry);
+		const bufferUVs = new Float32Array(constructedUVs);
+		
+		bufferGeometry.setIndex(constructedIndices);
+		bufferGeometry.setAttribute('position', new THREE.BufferAttribute(bufferVertices, 3));
+		bufferGeometry.setAttribute('uv', new THREE.BufferAttribute(bufferUVs, 2));
+		
+		const bufferMaterial = new THREE.MeshLambertMaterial({color: 0xEEEEEE, flatShading: true, side:THREE.DoubleSide, map: texture});
+		model = new THREE.Mesh(bufferGeometry, bufferMaterial);
+		model.scale.y = 0;
+		models.add(model);
+	}
 	
 	document.getElementById("buildmode").addEventListener('click', (event) => {
 		if (!buildMode){
 			buildMode = true;
+			heightSet = false;
 			document.getElementById("viewport").style.cursor = "crosshair";
 			document.getElementById("buildmode").style.backgroundColor = "#FFAA0099";
+			document.getElementById("setheight").style.backgroundColor = "#FFFFFF";
 			//clear old points and gizmos
 			points = [];
 			line.geometry = new THREE.BufferGeometry().setFromPoints(points);
@@ -63,75 +133,54 @@ const init = () => {
 		} else {
 			buildMode = false;
 			document.getElementById("viewport").style.cursor  = "grab";
-			document.getElementById("buildmode").style.backgroundColor = "#FFFFFFFF";
+			document.getElementById("buildmode").style.backgroundColor = "#FFFFFF";
 			
-			//get model geometry
-			let constructedGeometry = [];
-			let constructedIndices = [];
-			let roofIndices = [];
-			let constructedUVs = [];
-			
-			//building a wall for each point
-			for(let i=0; i<points.length; i++){
-				let wallplane = [];
-				let uv = [];
-				if (i < points.length-1){
-					wallplane = [
-						points[i].x, points[i].y, points[i].z,
-						points[i+1].x, points[i+1].y, points[i+1].z,
-						points[i+1].x, points[i+1].y+height, points[i+1].z,
-						points[i].x, points[i].y+height, points[i].z,
-					]
-					uv = [
-						points[i].x+0.5, Math.abs(points[i].z-0.5),
-						points[i+1].x+0.5, Math.abs(points[i+1].z-0.5),
-						points[i+1].x+0.5, Math.abs(points[i+1].z-0.5),
-						points[i].x+0.5, Math.abs(points[i].z-0.5),
-					]
-				} else if (i == points.length-1){
-					wallplane = [
-						points[i].x, points[i].y, points[i].z,
-						points[0].x, points[0].y, points[0].z,
-						points[0].x, points[0].y+height, points[0].z,
-						points[i].x, points[i].y+height, points[i].z,
-					]
-					uv = [
-						points[i].x+0.5, Math.abs(points[i].z-0.5),
-						points[0].x+0.5, Math.abs(points[0].z-0.5),
-						points[0].x+0.5, Math.abs(points[0].z-0.5),
-						points[i].x+0.5, Math.abs(points[i].z-0.5),
-					]
-				}
-				let indices = [
-					(i*4), (i*4)+1, (i*4)+2,
-					(i*4)+2, (i*4)+3, (i*4),
-				];
-				constructedGeometry = constructedGeometry.concat(wallplane);
-				constructedIndices = constructedIndices.concat(indices);
-				roofIndices = roofIndices.concat([(i*4)+3]);
-				constructedUVs = constructedUVs.concat(uv);
-			}
-			
-			//roofing with indices (brute covering for now) does not work for concave polygons
-			for(let i=2; i<roofIndices.length; i++){
-				constructedIndices = constructedIndices.concat([roofIndices[0], roofIndices[i-1], roofIndices[i]]);
-			}
-			
-			const bufferGeometry = new THREE.BufferGeometry();
-			const bufferVertices = new Float32Array(constructedGeometry);
-			const bufferUVs = new Float32Array(constructedUVs);
-			
-			bufferGeometry.setIndex(constructedIndices);
-			bufferGeometry.setAttribute('position', new THREE.BufferAttribute(bufferVertices, 3));
-			bufferGeometry.setAttribute('uv', new THREE.BufferAttribute(bufferUVs, 2));
-
-			const bufferMaterial = new THREE.MeshLambertMaterial({color: 0xEEEEEE, flatShading: true, side:THREE.DoubleSide, map: texture});
-			model = new THREE.Mesh(bufferGeometry, bufferMaterial);
-			model.scale.y = 0;
-			scene.add(model);
+			//build model from points selected
+			createModel();
 		}
 	});
-	scene.add(gizmos);
+	
+	document.getElementById("setheight").addEventListener('click', (event) => {
+		if (!heightSet){
+			heightSet = true;
+			buildMode = false;
+			document.getElementById("viewport").style.cursor  = "grab";
+			document.getElementById("setheight").style.backgroundColor = "#FFAA0099";
+			document.getElementById("buildmode").style.backgroundColor = "#FFFFFF";
+			document.getElementById("height").style.display = "block";
+			
+			//build model from points selected
+			createModel();
+		} else {
+			heightSet = false;
+			document.getElementById("setheight").style.backgroundColor = "#FFFFFF";
+			document.getElementById("height").style.display = "none";
+		}
+	});
+	
+	document.getElementById("delete").addEventListener('click', (event) => {
+		models.clear();
+		//clear old points and gizmos
+		points = [];
+		line.geometry = new THREE.BufferGeometry().setFromPoints(points);
+		gizmos.clear();
+		buildMode = false;
+		heightSet = false;
+		document.getElementById("viewport").style.cursor  = "grab";
+		document.getElementById("buildmode").style.backgroundColor = "#FFFFFF";
+		document.getElementById("setheight").style.backgroundColor = "#FFFFFF";
+	});
+	
+	document.getElementById("heightinput").addEventListener('input', (event) => {
+		userInputHeight = document.getElementById("heightinput").value;
+		document.getElementById("rangeinput").value = document.getElementById("heightinput").value;
+	});
+	
+	document.getElementById("rangeinput").addEventListener('input', (event) => {
+		userInputHeight = document.getElementById("heightinput").value;
+		document.getElementById("heightinput").value = document.getElementById("rangeinput").value;
+	});
+	
 	
 	//image and plane
 	const request = "https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/-122.477098046626,37.81059898565757,19/1024x1024?access_token=pk.eyJ1Ijoibmlja2ZpdHoiLCJhIjoiY2p3d2g3N2F5MDZ4azQwcG12dWticDB0diJ9.qnQV5QgYN_eDwg4uUdbO6Q";
@@ -145,9 +194,11 @@ const init = () => {
 		
 		const planeGeometry = new THREE.PlaneGeometry(1, 1);
 		planeGeometry.rotateX(-Math.PI/2);
-		const planeMaterial = new THREE.MeshBasicMaterial({color: 0xFFFFFF, side: THREE.DoubleSide, map: texture});
+		const planeMaterial = new THREE.MeshBasicMaterial({color: 0xFFFFFF, side: THREE.FrontSide, map: texture});
 		plane = new THREE.Mesh(planeGeometry, planeMaterial);
 		scene.add(plane);
+		scene.add(gizmos);
+		scene.add(models);
 	});
 	
 	//cursor and raycaster
@@ -196,6 +247,7 @@ const init = () => {
 	}
 	
 	let renderframe = (milliseconds) => {
+		//height interpolation
 		if (Math.abs(model.scale.y - userInputHeight) < 0.01){
 			model.scale.y = userInputHeight;
 		} else if (model.scale.y < userInputHeight){

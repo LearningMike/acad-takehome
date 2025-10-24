@@ -24,11 +24,52 @@ body {
 	z-index: 2;
 }
 .menubutton {
-	padding: 25px;
-	border-radius: 25px;
-	background-color: #FFFFFFFF;
+	padding: 20px;
+	border-radius: 15px;
+	background-color: #FFFFFF00;
 	cursor: pointer;
 }
 .menubutton:hover {
 	background-color: #FFAA0066;
+}
+#buildmode {
+	padding: 5px;
+	border-radius: 20px;
+	background-color: #FFFFFF;
+}
+#setheight {
+	padding: 5px;
+	border-radius: 20px;
+	background-color: #FFFFFF;
+}
+#delete {
+	padding: 5px;
+	border-radius: 20px;
+	background-color: #FFFFFF;
+}
+#height {
+	display: none;
+	position: fixed;
+	bottom: 250px;
+	margin: 15px;
+	padding: 25px;
+	border-radius: 25px;
+	background-color: #FFFFFF;
+	z-index: 2;
+}
+input[type=number] {
+    width: 30px;
+	border: 1px solid #ccc;
+	padding: 0px;
+	text-align: center;
+	border-radius: 4px;
+	font-size: 12px;
+}
+input[type=range][orient=vertical] {
+    writing-mode: vertical-lr;
+    direction: rtl;
+    appearance: slider-vertical;
+    width: 28px;
+    vertical-align: bottom;
+	padding: 0px;
 }
