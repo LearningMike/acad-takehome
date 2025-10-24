@@ -61,12 +61,16 @@ const init = () => {
 			buildMode = false;
 			document.getElementById("viewport").style.cursor  = "grab";
 			document.getElementById("buildmode").style.backgroundColor = "#FFFFFFFF";
-			//get height and build geometry
+			//get height
+			
+			//get model geometry
 			let constructedGeometry = [];
 			let constructedIndices = [];
+			let roofIndices = [];
+			
+			//building a wall for each point
 			for(let i=0; i<points.length; i++){
 				let wallplane = [];
-				//building a wall for each point
 				if (i < points.length-1){
 					wallplane = [
 						points[i].x, points[i].y, points[i].z,
@@ -88,13 +92,21 @@ const init = () => {
 				];
 				constructedGeometry = constructedGeometry.concat(wallplane);
 				constructedIndices = constructedIndices.concat(indices);
+				roofIndices = roofIndices.concat([(i*4)+3]);
 			}
+			
+			//roofing with indices (brute covering for now)
+			for(let i=0; i<roofIndices.length-2; i+=2){
+				if (i < roofIndices.length-1){
+					constructedIndices = constructedIndices.concat([roofIndices[i], roofIndices[i+1], roofIndices[i+2]]);
+				}
+			}
+			let j = roofIndices.length;
+			constructedIndices = constructedIndices.concat([roofIndices[0], roofIndices[2], roofIndices[j-1]]);
 			
 			const bufferGeometry = new THREE.BufferGeometry();
 			const bufferVertices = new Float32Array(constructedGeometry);
 			
-			console.log(constructedGeometry);
-			console.log(constructedIndices);
 			bufferGeometry.setIndex(constructedIndices);
 			bufferGeometry.setAttribute('position', new THREE.BufferAttribute(bufferVertices, 3));
 
