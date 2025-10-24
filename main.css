@@ -23,12 +23,12 @@ body {
 	background-color: #FFFFFF;
 	z-index: 2;
 }
-#buildmode {
+.menubutton {
 	padding: 25px;
 	border-radius: 25px;
 	background-color: #FFFFFFFF;
 	cursor: pointer;
 }
-#buildmode:hover {
+.menubutton:hover {
 	background-color: #FFAA0066;
 }

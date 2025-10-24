@@ -46,7 +46,10 @@ const init = () => {
 	let buildMode = false;
 	let points = [];
 	let gizmos = new THREE.Object3D();
-	let height = 0.2;
+	let height = 1;
+	let model = new THREE.Object3D();
+	let userInputHeight = 0.2;
+	let texture;
 	
 	document.getElementById("buildmode").addEventListener('click', (event) => {
 		if (!buildMode){
@@ -61,16 +64,17 @@ const init = () => {
 			buildMode = false;
 			document.getElementById("viewport").style.cursor  = "grab";
 			document.getElementById("buildmode").style.backgroundColor = "#FFFFFFFF";
-			//get height
 			
 			//get model geometry
 			let constructedGeometry = [];
 			let constructedIndices = [];
 			let roofIndices = [];
+			let constructedUVs = [];
 			
 			//building a wall for each point
 			for(let i=0; i<points.length; i++){
 				let wallplane = [];
+				let uv = [];
 				if (i < points.length-1){
 					wallplane = [
 						points[i].x, points[i].y, points[i].z,
@@ -78,12 +82,24 @@ const init = () => {
 						points[i+1].x, points[i+1].y+height, points[i+1].z,
 						points[i].x, points[i].y+height, points[i].z,
 					]
+					uv = [
+						points[i].x+0.5, Math.abs(points[i].z-0.5),
+						points[i+1].x+0.5, Math.abs(points[i+1].z-0.5),
+						points[i+1].x+0.5, Math.abs(points[i+1].z-0.5),
+						points[i].x+0.5, Math.abs(points[i].z-0.5),
+					]
 				} else if (i == points.length-1){
 					wallplane = [
 						points[i].x, points[i].y, points[i].z,
 						points[0].x, points[0].y, points[0].z,
 						points[0].x, points[0].y+height, points[0].z,
 						points[i].x, points[i].y+height, points[i].z,
+					]
+					uv = [
+						points[i].x+0.5, Math.abs(points[i].z-0.5),
+						points[0].x+0.5, Math.abs(points[0].z-0.5),
+						points[0].x+0.5, Math.abs(points[0].z-0.5),
+						points[i].x+0.5, Math.abs(points[i].z-0.5),
 					]
 				}
 				let indices = [
@@ -93,25 +109,25 @@ const init = () => {
 				constructedGeometry = constructedGeometry.concat(wallplane);
 				constructedIndices = constructedIndices.concat(indices);
 				roofIndices = roofIndices.concat([(i*4)+3]);
+				constructedUVs = constructedUVs.concat(uv);
 			}
 			
-			//roofing with indices (brute covering for now)
-			for(let i=0; i<roofIndices.length-2; i+=2){
-				if (i < roofIndices.length-1){
-					constructedIndices = constructedIndices.concat([roofIndices[i], roofIndices[i+1], roofIndices[i+2]]);
-				}
+			//roofing with indices (brute covering for now) does not work for concave polygons
+			for(let i=2; i<roofIndices.length; i++){
+				constructedIndices = constructedIndices.concat([roofIndices[0], roofIndices[i-1], roofIndices[i]]);
 			}
-			let j = roofIndices.length;
-			constructedIndices = constructedIndices.concat([roofIndices[0], roofIndices[2], roofIndices[j-1]]);
 			
 			const bufferGeometry = new THREE.BufferGeometry();
 			const bufferVertices = new Float32Array(constructedGeometry);
+			const bufferUVs = new Float32Array(constructedUVs);
 			
 			bufferGeometry.setIndex(constructedIndices);
 			bufferGeometry.setAttribute('position', new THREE.BufferAttribute(bufferVertices, 3));
+			bufferGeometry.setAttribute('uv', new THREE.BufferAttribute(bufferUVs, 2));
 
-			const bufferMaterial = new THREE.MeshLambertMaterial({color: 0xEEEEEE, flatShading: true, side:THREE.DoubleSide});
-			const model = new THREE.Mesh(bufferGeometry, bufferMaterial);
+			const bufferMaterial = new THREE.MeshLambertMaterial({color: 0xEEEEEE, flatShading: true, side:THREE.DoubleSide, map: texture});
+			model = new THREE.Mesh(bufferGeometry, bufferMaterial);
+			model.scale.y = 0;
 			scene.add(model);
 		}
 	});
@@ -122,14 +138,13 @@ const init = () => {
 	
 	let plane;
 	fetch(request).then(response => response.blob()).then(imageBlob => {
-		console.log("image retrieved");
 		const imageURL = URL.createObjectURL(imageBlob);
 		const loader = new THREE.TextureLoader();
-		const texture = loader.load(imageURL);
+		texture = loader.load(imageURL);
 		texture.colorSpace = THREE.SRGBColorSpace;
 		
 		const planeGeometry = new THREE.PlaneGeometry(1, 1);
-		planeGeometry.rotateX(Math.PI/2);
+		planeGeometry.rotateX(-Math.PI/2);
 		const planeMaterial = new THREE.MeshBasicMaterial({color: 0xFFFFFF, side: THREE.DoubleSide, map: texture});
 		plane = new THREE.Mesh(planeGeometry, planeMaterial);
 		scene.add(plane);
@@ -181,6 +196,13 @@ const init = () => {
 	}
 	
 	let renderframe = (milliseconds) => {
+		if (Math.abs(model.scale.y - userInputHeight) < 0.01){
+			model.scale.y = userInputHeight;
+		} else if (model.scale.y < userInputHeight){
+			model.scale.y += 0.01;
+		} else if (model.scale.y > userInputHeight){
+			model.scale.y -= 0.01;
+		}
 		renderer.render(scene, camera);
 	}
 	renderer.setAnimationLoop(renderframe);
