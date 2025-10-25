@@ -59,17 +59,26 @@ body {
 }
 input[type=number] {
     width: 30px;
-	border: 1px solid #ccc;
+	height: 30px;
+	border: 1px solid #FFAA0099;
 	padding: 0px;
 	text-align: center;
+	align-content: center;
 	border-radius: 4px;
-	font-size: 12px;
+	font-size: 11px;
 }
 input[type=range][orient=vertical] {
+	-webkit-appearance: none;
+	appearance: none;
+	background: transparent;
+	cursor: pointer;
+	border: none;
     writing-mode: vertical-lr;
     direction: rtl;
     appearance: slider-vertical;
+	accent-color: #FFAA0099;
     width: 28px;
+	height: 280px;
     vertical-align: bottom;
 	padding: 0px;
 }

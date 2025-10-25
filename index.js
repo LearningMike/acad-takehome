@@ -24,6 +24,7 @@ const init = () => {
 	controls.autoRotate = false;
 	controls.enableDamping = true;
 	controls.enableZoom = true;
+	controls.enablePan = false;
 	controls.maxDistance = 2;
 	controls.minDistance = 0.5;
 	controls.maxPolarAngle = Math.PI-1.7;
@@ -46,12 +47,13 @@ const init = () => {
 	let buildMode = false;
 	let heightSet = false;
 	let points = [];
+	let newpoints = false;
 	let gizmos = new THREE.Object3D();
 	let height = 1;
 	let models = new THREE.Object3D();
 	let model = new THREE.Object3D();
 	let texture;
-	let userInputHeight = document.getElementById("heightinput").value;
+	let userInputHeight = parseFloat(document.getElementById("heightinput").value);
 	
 	const createModel = () => {
 		let constructedGeometry = [];
@@ -117,15 +119,18 @@ const init = () => {
 		model = new THREE.Mesh(bufferGeometry, bufferMaterial);
 		model.scale.y = 0;
 		models.add(model);
+		newpoints = false;
 	}
 	
 	document.getElementById("buildmode").addEventListener('click', (event) => {
+		event.stopPropagation();
 		if (!buildMode){
 			buildMode = true;
 			heightSet = false;
 			document.getElementById("viewport").style.cursor = "crosshair";
 			document.getElementById("buildmode").style.backgroundColor = "#FFAA0099";
 			document.getElementById("setheight").style.backgroundColor = "#FFFFFF";
+			document.getElementById("height").style.display = "none";
 			//clear old points and gizmos
 			points = [];
 			line.geometry = new THREE.BufferGeometry().setFromPoints(points);
@@ -136,11 +141,14 @@ const init = () => {
 			document.getElementById("buildmode").style.backgroundColor = "#FFFFFF";
 			
 			//build model from points selected
-			createModel();
+			if (newpoints){
+				createModel();
+			}
 		}
 	});
 	
 	document.getElementById("setheight").addEventListener('click', (event) => {
+		event.stopPropagation();
 		if (!heightSet){
 			heightSet = true;
 			buildMode = false;
@@ -150,7 +158,9 @@ const init = () => {
 			document.getElementById("height").style.display = "block";
 			
 			//build model from points selected
-			createModel();
+			if (newpoints){
+				createModel();
+			}
 		} else {
 			heightSet = false;
 			document.getElementById("setheight").style.backgroundColor = "#FFFFFF";
@@ -159,6 +169,7 @@ const init = () => {
 	});
 	
 	document.getElementById("delete").addEventListener('click', (event) => {
+		event.stopPropagation();
 		models.clear();
 		//clear old points and gizmos
 		points = [];
@@ -169,16 +180,21 @@ const init = () => {
 		document.getElementById("viewport").style.cursor  = "grab";
 		document.getElementById("buildmode").style.backgroundColor = "#FFFFFF";
 		document.getElementById("setheight").style.backgroundColor = "#FFFFFF";
+		document.getElementById("height").style.display = "none";
 	});
 	
 	document.getElementById("heightinput").addEventListener('input', (event) => {
-		userInputHeight = document.getElementById("heightinput").value;
-		document.getElementById("rangeinput").value = document.getElementById("heightinput").value;
+		event.stopPropagation();
+		userInputHeight = parseFloat(document.getElementById("heightinput").value);
+		document.getElementById("rangeinput").value = parseFloat(document.getElementById("heightinput").value);
+		model.scale.y = userInputHeight;
 	});
 	
 	document.getElementById("rangeinput").addEventListener('input', (event) => {
-		userInputHeight = document.getElementById("heightinput").value;
-		document.getElementById("heightinput").value = document.getElementById("rangeinput").value;
+		event.stopPropagation();
+		userInputHeight = parseFloat(document.getElementById("heightinput").value);
+		document.getElementById("heightinput").value = parseFloat(document.getElementById("rangeinput").value);
+		model.scale.y = userInputHeight;
 	});
 	
 	
@@ -235,6 +251,8 @@ const init = () => {
 				let baseGeometry = JSON.parse(JSON.stringify(points));
 				baseGeometry.push(new THREE.Vector3(points[0].x, points[0].y, points[0].z));
 				line.geometry = new THREE.BufferGeometry().setFromPoints(baseGeometry);
+				
+				newpoints = true;
 			}
 		}
 	}
